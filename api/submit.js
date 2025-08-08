@@ -3,8 +3,10 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE, // ensure this name matches your Vercel env
-  { auth: { persistSession: false } }
+  process.env.SUPABASE_SERVICE_ROLE,
+  {
+    auth: { persistSession: false },
+  }
 );
 
 export default async function handler(req, res) {
@@ -13,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Parse x-www-form-urlencoded
+    // Parse x-www-form-urlencoded (plain HTML form post)
     const data = await new Promise((resolve, reject) => {
       let body = '';
       req.on('data', chunk => { body += chunk; });
@@ -38,18 +40,20 @@ export default async function handler(req, res) {
 
     const { error } = await supabase
       .from('submissions')
-      .upsert({ email, ip, user_agent: userAgent }, { onConflict: 'email' });
+      .insert({ email, ip, user_agent: userAgent });
 
     if (error) {
+      // Handle duplicate email cleanly
+      if (error.message && /duplicate key/i.test(error.message)) {
+        return res.status(200).send('Already subscribed');
+      }
       console.error(error);
       return res.status(500).send('Database Error');
     }
 
-    // Manual 303 redirect (works everywhere)
-    res.statusCode = 303;
-    res.setHeader('Location', '/thank-you.html');
-    return res.end();
-
+    // Redirect to thank-you page or return 200
+    // return res.redirect(303, '/thank-you.html');
+    return res.status(200).send('Success');
   } catch (err) {
     console.error(err);
     return res.status(500).send('Server Error');

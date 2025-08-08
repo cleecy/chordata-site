@@ -52,7 +52,7 @@ export default async function handler(req, res) {
     }
 
     // Redirect to thank-you page or return 200
-    // return res.redirect(303, '/thank-you.html');
+    return res.redirect(303, '/thank-you.html');
     return res.status(200).send('Success');
   } catch (err) {
     console.error(err);
